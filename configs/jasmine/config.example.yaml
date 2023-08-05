@@ -1,0 +1,13 @@
+jiraServer:
+jiraUser: 
+jiraApiKey:
+queries:
+  - name: example
+    jql: project=EXAMPLE
+    attributes: 
+      - assignee
+  - name: example2
+    jql: project=EXAMPLE2
+    attributes: 
+      - assignee
+      - reporter

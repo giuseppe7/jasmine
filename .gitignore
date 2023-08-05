@@ -1,0 +1,5 @@
+# Test coverage results.
+cover.out
+
+# Ignore the config file but keep the example.
+configs/jasmine/config.yaml
