@@ -28,21 +28,20 @@ func TestGetResults(t *testing.T) {
 
 	issues, err := jiraWorker.GetJiraIssues()
 	require.NoError(t, err)
-	require.NotNil(t, issues)
 
-	// Reset the attribute name map to no values.
-	attrNamesMap := make(map[string]map[string]int)
-	for _, attrName := range jiraWorker.attributes {
-		nestedMap := make(map[string]int)
-		attrNamesMap[attrName] = nestedMap
-	}
-
-	// Iterate through the issues to collect stats on attributes.
-	for _, issue := range issues {
-		for attrName := range attrNamesMap {
-			_, err := jiraWorker.GetJiraIssueAttributeValue(issue, attrName)
-			require.NoError(t, err, attrName)
+	if len(issues) > 0 {
+		// Reset the attribute name map to no values.
+		attrNamesMap := make(map[string]map[string]int)
+		for _, attrName := range jiraWorker.attributes {
+			nestedMap := make(map[string]int)
+			attrNamesMap[attrName] = nestedMap
+		}
+		// Iterate through the issues to collect stats on attributes.
+		for _, issue := range issues {
+			for attrName := range attrNamesMap {
+				_, err := jiraWorker.GetJiraIssueAttributeValue(issue, attrName)
+				require.NoError(t, err, attrName)
+			}
 		}
 	}
-
 }

@@ -84,6 +84,13 @@ func (jiraWorker *JiraWorker) GetJiraIssueAttributeValue(issue jira.Issue, attri
 func (jiraWorker *JiraWorker) DoWork(workStatusChannel chan<- JiraWorkStatus) {
 	const sleepInterval = 60
 
+	// Create the attribute name map to attribute value map.
+	attrNamesMap := make(map[string]map[string]int)
+	for _, attrName := range jiraWorker.attributes {
+		attrValuesMap := make(map[string]int)
+		attrNamesMap[attrName] = attrValuesMap
+	}
+
 	for {
 		// JiraWorkStatus to encapsulate the iteration's result.
 		workStatus := JiraWorkStatus{
@@ -107,11 +114,12 @@ func (jiraWorker *JiraWorker) DoWork(workStatusChannel chan<- JiraWorkStatus) {
 		}
 		workStatusChannel <- workStatus
 
-		// Reset the attribute name map to no values.
-		attrNamesMap := make(map[string]map[string]int)
-		for _, attrName := range jiraWorker.attributes {
-			nestedMap := make(map[string]int)
-			attrNamesMap[attrName] = nestedMap
+		// Reset the attribute name map to 0 for values seen so far.
+		for attrName := range attrNamesMap {
+			attrValueMap := attrNamesMap[attrName]
+			for attrValue := range attrValueMap {
+				attrValueMap[attrValue] = 0
+			}
 		}
 
 		// Iterate through the issues to collect stats on attributes.
@@ -121,11 +129,11 @@ func (jiraWorker *JiraWorker) DoWork(workStatusChannel chan<- JiraWorkStatus) {
 				if err != nil {
 					log.Printf("jira worker '%s' for %s errored with %v.\n", jiraWorker.name, attrName, err)
 				} else {
-					nestedMap := attrNamesMap[attrName]
-					if value, exists := nestedMap[attrValue]; exists {
-						nestedMap[attrValue] = value + 1
+					attrValueMap := attrNamesMap[attrName]
+					if value, exists := attrValueMap[attrValue]; exists {
+						attrValueMap[attrValue] = value + 1
 					} else {
-						nestedMap[attrValue] = 1
+						attrValueMap[attrValue] = 1
 					}
 				}
 			}
@@ -133,12 +141,16 @@ func (jiraWorker *JiraWorker) DoWork(workStatusChannel chan<- JiraWorkStatus) {
 
 		// Summarize it via metrics endpoint.
 		for attrName := range attrNamesMap {
-			attrNameValueMap := attrNamesMap[attrName]
-			for attrValue := range attrNameValueMap {
-				log.Printf("jira worker '%s' has %s with %d.\n", jiraWorker.name, attrValue, attrNameValueMap[attrValue])
-				jiraWorker.queryResultCounts.WithLabelValues(jiraWorker.name, attrName, attrValue).Set(float64(attrNameValueMap[attrValue]))
+			attrValueMap := attrNamesMap[attrName]
+			for attrValue := range attrValueMap {
+				log.Printf("jira worker '%s' with %s has %s with %d.\n", jiraWorker.name, attrName, attrValue, attrValueMap[attrValue])
+				jiraWorker.queryResultCounts.WithLabelValues(jiraWorker.name, attrName, attrValue).Set(float64(attrValueMap[attrValue]))
+			}
+			if len(attrValueMap) == 0 {
+				log.Printf("jira worker '%s' with %s has no results.\n", jiraWorker.name, attrName)
 			}
 		}
+
 		time.Sleep(sleepInterval * time.Second)
 	}
 }

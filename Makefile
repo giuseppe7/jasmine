@@ -28,7 +28,7 @@ package:
 	@echo "⋮⋮ Packaging container..."
 	docker build -f ./build/package/Dockerfile --build-arg BUILD_NUM="$(BUILD_MAJOR).$(BUILD_MINOR)" -t giuseppe007/jasmine:local .
 
-run:
+run: package
 	@echo
 	@echo "⋮⋮ Running the container locally..."
 	docker run -e JASMINE_JIRAAPIKEY=$(JASMINE_JIRAAPIKEY) -p 2112:2112 -v ./configs/jasmine/config.yaml:/config.yaml:ro giuseppe007/jasmine:local --config=/config.yaml
